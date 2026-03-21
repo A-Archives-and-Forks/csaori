@@ -14,7 +14,7 @@
 #include <windows.h>
 
 #include <new>
-#include <fstream>
+#include <stdio.h>
 
 #include "shared_value.h"
 
@@ -31,7 +31,7 @@
 #define HEADER_LENGTH    6
 #define BUFFER_ENCODE ((MAX_VALUE_LENGTH+HEADER_LENGTH)*2)
 #define BUFFER_DECODE (MAX_VALUE_LENGTH+HEADER_LENGTH)
-#define FILE_NAME "values.dat"
+#define FILE_NAME L"values.dat"
 
 void EncodeBuffer2(const char *buf_from,char *buf_to)
 {
@@ -92,7 +92,7 @@ void DecodeBuffer2(const char *buf_from,char *buf_to)
 	char asc[3];
 	asc[2] = 0;
 
-	while ( *buf_from ) {
+	while ( buf_from[0] && buf_from[1] ) {
 		asc[0] = buf_from[0];
 		asc[1] = buf_from[1];
 
@@ -127,7 +127,7 @@ public:
 	const string_t& GetGhost(void) const { return m_ghost; }
 	void SetGhost(const string_t& n) { m_ghost = n; }
 
-	void Save(std::ostream &f);
+	void Save(FILE *f);
 
 	void PushBack(std::vector<string_t> &vec);
 
@@ -192,7 +192,7 @@ bool CSharedValueGhost::Add(const string_t& name,const string_t& value)
 	}
 }
 
-void CSharedValueGhost::Save(std::ostream &f)
+void CSharedValueGhost::Save(FILE *f)
 {
 	size_t n = m_element.size();
 	if ( n == 0 ) {
@@ -212,7 +212,7 @@ void CSharedValueGhost::Save(std::ostream &f)
 
 	strncpy(buf_decode,save.c_str(),BUFFER_DECODE);
 	EncodeBuffer2(buf_decode,buf_encode);
-	f << buf_encode << std::endl;
+	fprintf(f,"%s\n",buf_encode);
 
 	for ( size_t i = 0 ; i < n ; ++i ) {
 		save =  "NAME_*";
@@ -220,14 +220,14 @@ void CSharedValueGhost::Save(std::ostream &f)
 
 		strncpy(buf_decode,save.c_str(),BUFFER_DECODE);
 		EncodeBuffer2(buf_decode,buf_encode);
-		f << buf_encode << std::endl;
+		fprintf(f,"%s\n",buf_encode);
 
 		save =  "VALUE*";
 		save += SAORI_FUNC::UnicodeToMultiByte(m_element[i]->m_value,CP_UTF8);
 
 		strncpy(buf_decode,save.c_str(),BUFFER_DECODE);
 		EncodeBuffer2(buf_decode,buf_encode);
-		f << buf_encode << std::endl;
+		fprintf(f,"%s\n",buf_encode);
 	}
 }
 
@@ -280,17 +280,27 @@ bool CSharedValue::load()
 {
 	m_last_time = time(NULL);
 
-	std::ifstream strm;
-	strm.open(checkAndModifyPath(FILE_NAME).c_str());
+	FILE *fp = _wfopen(checkAndModifyPathW(FILE_NAME).c_str(),L"r");
+	if ( ! fp ) {
+		return false;
+	}
 
 	char buf_decode[BUFFER_DECODE+1];
 	buf_decode[BUFFER_DECODE] = 0;
 	char buf_encode[BUFFER_ENCODE+1];
 	buf_encode[BUFFER_ENCODE] = 0;
 
-	strm.getline(buf_encode,BUFFER_ENCODE);
-	if ( strm.fail() ) {
+	if ( ! fgets(buf_encode,BUFFER_ENCODE,fp) ) {
+		fclose(fp);
 		return false;
+	}
+
+	//fgets‚Ì––”ö‰üs‚ðœ‹Ž
+	{
+		size_t len = strlen(buf_encode);
+		while ( len > 0 && (buf_encode[len-1] == '\n' || buf_encode[len-1] == '\r') ) {
+			buf_encode[--len] = 0;
+		}
 	}
 
 	int version = 0;
@@ -302,6 +312,7 @@ bool CSharedValue::load()
 		version = 1;
 	}
 	else {
+		fclose(fp);
 		return false;
 	}
 
@@ -309,10 +320,13 @@ bool CSharedValue::load()
 	string_t name;
 	string_t value;
 
-	while ( true ) {
-		strm.getline(buf_encode,sizeof(buf_encode));
-		if ( strm.fail() ) {
-			break;
+	while ( fgets(buf_encode,sizeof(buf_encode),fp) ) {
+		//fgets‚Ì––”ö‰üs‚ðœ‹Ž
+		{
+			size_t len = strlen(buf_encode);
+			while ( len > 0 && (buf_encode[len-1] == '\n' || buf_encode[len-1] == '\r') ) {
+				buf_encode[--len] = 0;
+			}
 		}
 
 		if ( version == 1 ) {
@@ -347,24 +361,26 @@ bool CSharedValue::load()
 		}
 	}
 
-	strm.close();
+	fclose(fp);
 
 	return true;
 }
 
 void CSharedValue::Save(void)
 {
-	std::ofstream strm;
-	strm.open(checkAndModifyPath(FILE_NAME).c_str());
+	FILE *fp = _wfopen(checkAndModifyPathW(FILE_NAME).c_str(),L"w");
+	if ( ! fp ) {
+		return;
+	}
 
-	strm << "SVD2" << std::endl;
+	fprintf(fp,"SVD2\n");
 	size_t n = m_ghost_values.size();
 
 	for ( size_t i = 0 ; i < n ; ++i ) {
-		m_ghost_values[i]->Save(strm);
+		m_ghost_values[i]->Save(fp);
 	}
 
-	strm.close();
+	fclose(fp);
 }
 
 
@@ -427,7 +443,27 @@ void CSharedValue::exec(const CSAORIInput& in,CSAORIOutput& out)
 
 			size_t m = in.args.size();
 
-			for ( size_t j = 0 ; j < m ; j+=2 ) {
+			for ( size_t j = 0 ; j + 1 < m ; j+=2 ) {
+				pG->Add(in.args[j],in.args[j+1]);
+			}
+		}
+		return;
+	}
+
+	//--------------------------------------------------------
+	if ( wcsicmp(in.id.c_str(),L"OnSharedValueWriteEx") == 0 ) {
+		if ( in.args.size() >= 3 ) {
+			out.result_code = SAORIRESULT_NO_CONTENT;
+
+			CSharedValueGhost *pG = FindGhost(in.args[0]);
+			if ( ! pG ) {
+				pG = new CSharedValueGhost(in.args[0]);
+				m_ghost_values.push_back(pG);
+			}
+
+			size_t m = in.args.size();
+
+			for ( size_t j = 1 ; j + 1 < m ; j+=2 ) {
 				pG->Add(in.args[j],in.args[j+1]);
 			}
 		}
