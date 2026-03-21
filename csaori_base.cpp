@@ -388,18 +388,18 @@ string_t CSAORIBase::checkAndModifyPathW(const string_t &p)
 		{
 			void *pBuf = malloc(len+1);
 #ifdef _UNICODE
-			std::string::size_type realLen = ::ExpandEnvironmentStrings(filepath.c_str(),(wchar_t*)pBuf,(DWORD)len);
+			std::string::size_type realLen = ::ExpandEnvironmentStringsW(filepath.c_str(),(wchar_t*)pBuf,(DWORD)len);
 #else
 			std::string filepatha = SAORI_FUNC::UnicodeToMultiByte(p);
-			std::string::size_type realLen = ::ExpandEnvironmentStrings(filepatha.c_str(),(char*)pBuf,(DWORD)len);
+			std::string::size_type realLen = ::ExpandEnvironmentStringsA(filepatha.c_str(),(char*)pBuf,(DWORD)len);
 #endif
 			if ( realLen > len ) {
 				free(pBuf);
 				pBuf = malloc(realLen+1);
 #ifdef _UNICODE
-				realLen = ::ExpandEnvironmentStrings(filepath.c_str(),(wchar_t*)pBuf,(DWORD)realLen);
+				realLen = ::ExpandEnvironmentStringsW(filepath.c_str(),(wchar_t*)pBuf,(DWORD)realLen);
 #else
-				realLen = ::ExpandEnvironmentStrings(filepatha.c_str(),(char*)pBuf,(DWORD)realLen);
+				realLen = ::ExpandEnvironmentStringsA(filepatha.c_str(),(char*)pBuf,(DWORD)realLen);
 #endif
 			}
 
@@ -456,17 +456,17 @@ std::string CSAORIBase::checkAndModifyPath(const std::string &p)
 			void *pBuf = malloc(len+1);
 #ifdef _UNICODE
 			string_t filepathw = SAORI_FUNC::MultiByteToUnicode(p);
-			std::string::size_type realLen = ::ExpandEnvironmentStrings(filepathw.c_str(),(wchar_t*)pBuf,(DWORD)len);
+			std::string::size_type realLen = ::ExpandEnvironmentStringsW(filepathw.c_str(),(wchar_t*)pBuf,(DWORD)len);
 #else
-			std::string::size_type realLen = ::ExpandEnvironmentStrings(filepath.c_str(),(char*)pBuf,(DWORD)len);
+			std::string::size_type realLen = ::ExpandEnvironmentStringsA(filepath.c_str(),(char*)pBuf,(DWORD)len);
 #endif
 			if ( realLen > len ) {
 				free(pBuf);
 				pBuf = malloc(realLen+1);
 #ifdef _UNICODE
-				realLen = ::ExpandEnvironmentStrings(filepathw.c_str(),(wchar_t*)pBuf,(DWORD)realLen);
+				realLen = ::ExpandEnvironmentStringsW(filepathw.c_str(),(wchar_t*)pBuf,(DWORD)realLen);
 #else
-				realLen = ::ExpandEnvironmentStrings(filepath.c_str(),(char*)pBuf,(DWORD)realLen);
+				realLen = ::ExpandEnvironmentStringsA(filepath.c_str(),(char*)pBuf,(DWORD)realLen);
 #endif
 			}
 
