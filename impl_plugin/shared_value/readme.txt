@@ -95,6 +95,39 @@
 　　・NOTIFYイベント：このイベント通知でスクリプトを返すことはできません。
 
 
+・拡張プロパティの取得（OnGetProperty）
+
+　SSPがpluginlist(プラグイン名/パス/ID).extによる拡張プロパティ取得時に自動発生します。
+
+　プロパティ名の書式：
+　　ghost(ゴースト名).key(キー名)
+
+　戻り値：
+　　対応するゴーストのキーに格納された値を返します。
+　　値が存在しない場合は204 No Contentを返します。
+
+　詳細：
+　　https://ssp.shillest.net/ukadoc/manual/list_plugin_event.html#OnGetProperty
+
+
+・拡張プロパティの設定（OnSetProperty）
+
+　SSPがpluginlist(プラグイン名/パス/ID).extによる拡張プロパティ設定時に自動発生します。
+
+　プロパティ名の書式：
+　　ghost(ゴースト名).key(キー名)
+
+　Reference0＝プロパティ名
+　Reference1＝設定する値
+
+　戻り値：
+　　成功時は204 No Contentを返します。
+　　空文字列を設定するとキーが削除されます。
+
+　詳細：
+　　https://ssp.shillest.net/ukadoc/manual/list_plugin_event.html#OnSetProperty
+
+
 ■配布条件等
 
 license.txtを見てください。
@@ -105,4 +138,6 @@ license.txtを見てください。
 　First Release
 ・2026/03/21 1.1
 　OnSharedValueWriteEx を追加
+・2026/03/22 1.2
+　OnGetProperty・OnSetProperty仕様の対応
 

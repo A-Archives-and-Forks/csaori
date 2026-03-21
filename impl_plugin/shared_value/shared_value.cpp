@@ -502,6 +502,89 @@ void CSharedValue::exec(const CSAORIInput& in,CSAORIOutput& out)
 	}
 
 	//--------------------------------------------------------
+	if ( wcsicmp(in.id.c_str(),L"OnGetProperty") == 0 ) {
+		if ( in.args.size() >= 1 ) {
+			// ghost(ゴースト名).key(キー名) をパース
+			const string_t &prop = in.args[0];
+			string_t ghost_name;
+			string_t key_name;
+
+			// "ghost(" で始まるか確認
+			if ( wcsnicmp(prop.c_str(), L"ghost(", 6) == 0 ) {
+				size_t ghost_end = prop.find(L").", 6);
+				if ( ghost_end != string_t::npos ) {
+					ghost_name = prop.substr(6, ghost_end - 6);
+					// ").key(" の後
+					size_t key_start = ghost_end + 2;
+					if ( wcsnicmp(prop.c_str() + key_start, L"key(", 4) == 0 ) {
+						key_start += 4;
+						size_t key_end = prop.find(L")", key_start);
+						if ( key_end != string_t::npos ) {
+							key_name = prop.substr(key_start, key_end - key_start);
+						}
+					}
+				}
+			}
+
+			if ( ghost_name.size() > 0 && key_name.size() > 0 ) {
+				CSharedValueGhost *pG = FindGhost(ghost_name);
+				if ( pG ) {
+					const string_t &v = pG->Get(key_name);
+					if ( v.size() > 0 ) {
+						out.result = v;
+						out.result_code = SAORIRESULT_OK;
+					}
+					else {
+						out.result_code = SAORIRESULT_NO_CONTENT;
+					}
+				}
+				else {
+					out.result_code = SAORIRESULT_NO_CONTENT;
+				}
+			}
+		}
+		return;
+	}
+
+	//--------------------------------------------------------
+	if ( wcsicmp(in.id.c_str(),L"OnSetProperty") == 0 ) {
+		if ( in.args.size() >= 2 ) {
+			// ghost(ゴースト名).key(キー名) をパース
+			const string_t &prop = in.args[0];
+			string_t ghost_name;
+			string_t key_name;
+
+			// "ghost(" で始まるか確認
+			if ( wcsnicmp(prop.c_str(), L"ghost(", 6) == 0 ) {
+				size_t ghost_end = prop.find(L").", 6);
+				if ( ghost_end != string_t::npos ) {
+					ghost_name = prop.substr(6, ghost_end - 6);
+					// ").key(" の後
+					size_t key_start = ghost_end + 2;
+					if ( wcsnicmp(prop.c_str() + key_start, L"key(", 4) == 0 ) {
+						key_start += 4;
+						size_t key_end = prop.find(L")", key_start);
+						if ( key_end != string_t::npos ) {
+							key_name = prop.substr(key_start, key_end - key_start);
+						}
+					}
+				}
+			}
+
+			if ( ghost_name.size() > 0 && key_name.size() > 0 ) {
+				CSharedValueGhost *pG = FindGhost(ghost_name);
+				if ( ! pG ) {
+					pG = new CSharedValueGhost(ghost_name);
+					m_ghost_values.push_back(pG);
+				}
+				pG->Add(key_name, in.args[1]);
+				out.result_code = SAORIRESULT_NO_CONTENT;
+			}
+		}
+		return;
+	}
+
+	//--------------------------------------------------------
 	if ( wcsicmp(in.id.c_str(),L"OnSharedValueGhostList") == 0 ) {
 		event = L"OnSharedValueGhostList";
 		out.result_code = SAORIRESULT_OK;
