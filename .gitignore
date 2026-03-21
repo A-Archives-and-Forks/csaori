@@ -12,3 +12,6 @@
 *.exe
 Debug
 Release
+/.claude
+.mcp.json
+CLAUDE.md
